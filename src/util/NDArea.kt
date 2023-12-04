@@ -7,6 +7,7 @@ interface NDArea<T : NDArea<T, TPoint>, TPoint> : Iterable<TPoint> {
     operator fun contains(other: T): Boolean
     fun size(): Long
     fun intersect(other: T): T?
+    infix fun intersects(other: T): Boolean
 }
 
 //////// 1D Area ///////////
@@ -18,6 +19,10 @@ infix fun IntRange.intersect(other: IntRange): IntRange? {
         min > max -> null
         else -> min..max
     }
+}
+
+infix fun IntRange.intersects(other: IntRange): Boolean {
+    return maxOf(first, other.first) <= minOf(last, other.last)
 }
 
 operator fun IntRange.contains(other: IntRange) = other.first in this && other.last in this
@@ -52,6 +57,10 @@ class Rect(x1: Int, y1: Int, x2: Int, y2: Int) : NDArea<Rect, Point> {
         return Rect(newXRange, newYRange)
     }
 
+    override fun intersects(other: Rect): Boolean =
+        xRange intersects other.xRange &&
+            yRange intersects other.yRange
+
     fun expandedBy(size: Int) = Rect(minX - size, minY - size, maxX + size, maxY + size)
 }
 
@@ -73,12 +82,14 @@ fun Iterable<Point>.boundingRect(): Rect {
 //////// 3D Area ///////////
 class Cuboid(x1: Int, y1: Int, z1: Int, x2: Int, y2: Int, z2: Int) : NDArea<Cuboid, Point3> {
     constructor(p1: Point3, p2: Point3) : this(p1.x, p1.y, p1.z, p2.x, p2.y, p2.z)
-    constructor(xRange: IntRange, yRange: IntRange, zRange: IntRange) : this(xRange.first,
+    constructor(xRange: IntRange, yRange: IntRange, zRange: IntRange) : this(
+        xRange.first,
         yRange.first,
         zRange.first,
         xRange.last,
         yRange.last,
-        zRange.last)
+        zRange.last,
+    )
 
     val minX = minOf(x1, x2)
     val maxX = maxOf(x1, x2)
@@ -103,7 +114,9 @@ class Cuboid(x1: Int, y1: Int, z1: Int, x2: Int, y2: Int, z2: Int) : NDArea<Cubo
     override fun toString() = "Cuboid($minPos - $maxPos)"
     override fun iterator() = iterator { for (z in zRange) for (y in yRange) for (x in xRange) yield(Point3(x, y, z)) }
     override operator fun contains(p: Point3) = p.x in xRange && p.y in yRange && p.z in zRange
-    override operator fun contains(other: Cuboid) = other.xRange in xRange && other.yRange in yRange && other.zRange in zRange
+    override operator fun contains(other: Cuboid) =
+        other.xRange in xRange && other.yRange in yRange && other.zRange in zRange
+
     override fun size() = volume
     override fun intersect(other: Cuboid): Cuboid? {
         val newXRange = xRange.intersect(other.xRange) ?: return null
@@ -111,6 +124,11 @@ class Cuboid(x1: Int, y1: Int, z1: Int, x2: Int, y2: Int, z2: Int) : NDArea<Cubo
         val newZRange = zRange.intersect(other.zRange) ?: return null
         return Cuboid(newXRange, newYRange, newZRange)
     }
+
+    override fun intersects(other: Cuboid): Boolean =
+        xRange intersects other.xRange &&
+            yRange intersects other.yRange &&
+            zRange intersects other.zRange
 
     fun growBy(borderSize: Int): Cuboid {
         require(borderSize > 0)
