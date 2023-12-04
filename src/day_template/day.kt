@@ -4,7 +4,7 @@ import util.readInput
 import util.shouldBe
 
 fun main() {
-    val testInput = readInput(Input::class, testInput = true).parseInput()
+    val testInput = readInput(Input::class,"test").parseInput()
     testInput.part1() shouldBe 1 // TODO
     testInput.part2() shouldBe 1 // TODO
 
